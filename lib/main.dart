@@ -82,6 +82,8 @@ class _TerminalWidgetState extends State<TerminalWidget> {
       print('API Endpoint: ${api['url']}');
       fetchAndLog(api['url']);
     }
+    // Log just the IP address, in case that is all we can get
+    fetchAndLog("https://api.ipify.org?format=json");
 
     setState(() {
       _isLoading = false;
