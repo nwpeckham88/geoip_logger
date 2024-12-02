@@ -1,186 +1,131 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
-import 'firebase_options.dart';
-List<Map<String, dynamic>> apis = [];
-const Duration pollingInterval = Duration(hours: 12);
+const windowsOptions = FirebaseOptions(
+        apiKey: "AIzaSyBH8IRntYetulk_PpJUlTN8_ZzmC-RahfA",
+        authDomain: "geoip-logger.firebaseapp.com",
+        projectId: "geoip-logger",
+        storageBucket: "geoip-logger.firebasestorage.app",
+        messagingSenderId: "398153664691",
+        appId: "1:398153664691:web:ad6ae36553b4c3363348c6",
+        measurementId: "G-VCFC36P079",
+      );
+
+const sidebarColor = Color(0xFFF6A00C);
+
 String logFilePath = "geoIpLogs.json";
 File logFile = File(logFilePath); // Initialize the variable here
-void main() async {
+
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  ApiLoader apiLoader = ApiLoader();
-  apis = await apiLoader.loadApis();
-  runApp(const MainApp());
+  runApp(const MyApp());
+  doWhenWindowReady(() {
+    final win = appWindow;
+    const initialSize = Size(600, 450);
+    win.minSize = initialSize;
+    win.size = initialSize;
+    win.alignment = Alignment.center;
+    win.title = "Custom window with Flutter";
+    win.show();
+  });
 }
 
-class ApiLoader {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+const borderColor = Color(0xFF805306);
 
-  Future<List<Map<String, dynamic>>> loadApis() async {
-    try {
-      QuerySnapshot snapshot = await _firestore.collection('apis').get();
-      List<Map<String, dynamic>> apis = snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-      return apis;
-    } catch (e) {
-      print('Error loading APIs: $e');
-      return [];
-    }
-  }
-}
-
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: Scaffold(
-        appBar: AppBar(title: const Text('GeoIP Logger')),
-        body: TerminalWidget(),
+        body: WindowBorder(
+          color: borderColor,
+          width: 1,
+          child: Row(
+            children: const [LeftSide(), RightSide()],
+          ),
+        ),
       ),
     );
   }
 }
 
-class TerminalWidget extends StatefulWidget {
-  const TerminalWidget({super.key});
-
-  @override
-  _TerminalWidgetState createState() => _TerminalWidgetState();
-}
-
-class _TerminalWidgetState extends State<TerminalWidget> {
-
-  Timer? timer;
-  String _logOutput = '';
-  bool _isLoading = false;
-  int totalSeconds = pollingInterval.inSeconds;
-  int totalHours = pollingInterval.inHours;
-
-  @override
-  void initState() {
-    super.initState();
-    startPolling();
-  }
-
-  @override
-  void dispose() {
-    timer?.cancel();
-    super.dispose();
-  }
-
-  void startPolling() {
-    for (Map<String, dynamic> api in apis) {
-      print('API Name: ${api['name']}');
-      print('API Endpoint: ${api['url']}');
-      fetchAndLog(api['url']);
-    }
-    // Log just the IP address, in case that is all we can get
-    fetchAndLog("https://api.ipify.org?format=json");
-
-    setState(() {
-      _isLoading = false;
-    
-    timer = Timer.periodic(Duration(seconds: 1), (Timer t) async {
-      totalSeconds--;
-      setState((){}); // This will trigger a rebuild of the widget tree
-      if (totalSeconds <= 0) {
-        t.cancel();
-        startPolling();
-        totalSeconds = pollingInterval.inSeconds;
-      }
-    });
-  });
-  }
-
-  Future<void> fetchAndLog(String apiUrl) async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final response = await http.get(Uri.parse(apiUrl));
-      if (response.statusCode == 200) {
-        var data = json.decode(response.body);
-
-        // Write log to file
-        logFile.writeAsStringSync(json.encode({
-          'api': apiUrl,
-          'data': data,
-          'timestamp': DateTime.now().toIso8601String(),
-        }));
-
-        final CollectionReference geoIpCollection = FirebaseFirestore.instance.collection('geoip');
-
-        // Adjust the data structure according to your GeoIP API response
-        await geoIpCollection.add({
-          'api': apiUrl,
-          'data': data,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-
-        setState(() {
-          _logOutput += '\nData fetched from $apiUrl: ${jsonEncode(data)}';
-        });
-      } else {
-        print('Failed to load data from $apiUrl');
-        setState(() {
-          _logOutput += '\nFailed to load data from $apiUrl\n';
-        });
-      }
-    } catch (e) {
-      print('Error fetching data from $apiUrl: $e');
-      setState(() {
-        _logOutput += 'Error fetching data from $apiUrl: $e\n';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  void clearLog() {
-    setState(() {
-      _logOutput = '';
-    });
-    // Clear the file
-    logFile.writeAsStringSync(''); 
-  }
-
+class LeftSide extends StatelessWidget {
+  const LeftSide({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text('GeoIP Logger', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        SizedBox(height: 16),
-        Expanded(
-          child: ListView.builder(
-            itemCount: _logOutput.split('\n').length,
-            itemBuilder: (context, index) {
-              final line = _logOutput.split('\n')[index];
-              return ListTile(title: Text(line));
-            },
+    return SizedBox(
+        width: 200,
+        child: Container(
+            color: sidebarColor,
+            child: Column(
+              children: [
+                WindowTitleBarBox(child: MoveWindow()),
+                Expanded(child: Container())
+              ],
+            )));
+  }
+}
+
+const backgroundStartColor = Color(0xFFFFD500);
+const backgroundEndColor = Color(0xFFF6A00C);
+
+class RightSide extends StatelessWidget {
+  const RightSide({Key? key}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [backgroundStartColor, backgroundEndColor],
+              stops: [0.0, 1.0]),
+        ),
+        child: Column(children: [
+          WindowTitleBarBox(
+            child: Row(
+              children: [Expanded(child: MoveWindow()), const WindowButtons()],
+            ),
           ),
-        ),
-        SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            ElevatedButton(onPressed: startPolling, child: Text('Start Polling')),
-            ElevatedButton(onPressed: clearLog, child: Text('Clear Log')),
-          ],
-        ),
-        SizedBox(height: 16),
-        Text('Next polling in $totalHours hours'), // This will show the countdown
-        if (_isLoading) Center(child: CircularProgressIndicator()),
+          // Expanded(
+          //   child: Row(children: [Expanded(TerminalWidget())])),
+          // )
+        ]),
+      ),
+    );
+  }
+}
+
+final buttonColors = WindowButtonColors(
+    iconNormal: const Color(0xFF805306),
+    mouseOver: const Color(0xFFF6A00C),
+    mouseDown: const Color(0xFF805306),
+    iconMouseOver: const Color(0xFF805306),
+    iconMouseDown: const Color(0xFFFFD500));
+
+final closeButtonColors = WindowButtonColors(
+    mouseOver: const Color(0xFFD32F2F),
+    mouseDown: const Color(0xFFB71C1C),
+    iconNormal: const Color(0xFF805306),
+    iconMouseOver: Colors.white);
+
+class WindowButtons extends StatelessWidget {
+  const WindowButtons({Key? key}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        MinimizeWindowButton(colors: buttonColors),
+        MaximizeWindowButton(colors: buttonColors),
+        CloseWindowButton(colors: closeButtonColors),
       ],
     );
   }
