@@ -5,37 +5,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-List<Map<String, dynamic>> apis = [];
-
-
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('GeoIP Logger')),
-        body: TerminalWidget(),
-      ),
-    );
-  }
-}
-
 class TerminalWidget extends StatefulWidget {
-  const TerminalWidget({super.key});
+
+  const TerminalWidget({super.key, required this.options});
 
   @override
-  _TerminalWidgetState createState() => _TerminalWidgetState();
+  State<StatefulWidget> createState() => _TerminalWidgetState();
+
 }
 
 class _TerminalWidgetState extends State<TerminalWidget> {
-
   Duration pollingInterval = Duration(hours: 12);
   Timer? timer;
   String _logOutput = '';
   bool _isLoading = false;
-
 
   @override
   void initState() {
@@ -50,7 +33,7 @@ class _TerminalWidgetState extends State<TerminalWidget> {
   }
 
   void startPolling() {
-    for (Map<String, dynamic> api in apis) {
+    for (Map<String, dynamic> api in widget._apis) {
       print('API Name: ${api['name']}');
       print('API Endpoint: ${api['url']}');
       fetchAndLog(api['url']);
@@ -60,19 +43,7 @@ class _TerminalWidgetState extends State<TerminalWidget> {
 
     setState(() {
       _isLoading = false;
-    
-    timer = Timer.periodic(Duration(seconds: 1), (Timer t) async {
-      int totalSeconds = pollingInterval.inSeconds;
-
-      totalSeconds--;
-      setState((){}); // This will trigger a rebuild of the widget tree
-      if (totalSeconds <= 0) {
-        t.cancel();
-        startPolling();
-        totalSeconds = pollingInterval.inSeconds;
-      }
     });
-  });
   }
 
   Future<void> fetchAndLog(String apiUrl) async {
@@ -161,5 +132,3 @@ class _TerminalWidgetState extends State<TerminalWidget> {
     );
   }
 }
-
-

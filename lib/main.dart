@@ -3,6 +3,16 @@ import 'dart:io';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:geoip_logger/firestore_api_loader.dart';
+import 'package:geoip_logger/terminal_widget.dart';
+
+final GeoIPFirebaseFirestore firestore = GeoIPFirebaseFirestore();
+
+const sidebarColor = Color(0xFFF6A00C);
+
+String logFilePath = "geoIpLogs.json";
+File logFile = File(logFilePath); // Initialize the variable here
+
 
 const windowsOptions = FirebaseOptions(
         apiKey: "AIzaSyBH8IRntYetulk_PpJUlTN8_ZzmC-RahfA",
@@ -14,14 +24,11 @@ const windowsOptions = FirebaseOptions(
         measurementId: "G-VCFC36P079",
       );
 
-const sidebarColor = Color(0xFFF6A00C);
-
-String logFilePath = "geoIpLogs.json";
-File logFile = File(logFilePath); // Initialize the variable here
-
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  firestore.initializeFirebase();
+  firestore.loadApis();
   runApp(const MyApp());
   doWhenWindowReady(() {
     final win = appWindow;
@@ -81,26 +88,26 @@ class RightSide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [backgroundStartColor, backgroundEndColor],
-              stops: [0.0, 1.0]),
-        ),
-        child: Column(children: [
-          WindowTitleBarBox(
-            child: Row(
-              children: [Expanded(child: MoveWindow()), const WindowButtons()],
+        child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [backgroundStartColor, backgroundEndColor],
+                  stops: [0.0, 1.0]),
             ),
-          ),
-          // Expanded(
-          //   child: Row(children: [Expanded(TerminalWidget())])),
-          // )
-        ]),
-      ),
-    );
+            child: Column(children: [
+              WindowTitleBarBox(
+                child: Row(
+                  children: [
+                    Expanded(child: MoveWindow()),
+                    const WindowButtons()
+                  ],
+                ),
+              ),
+              Expanded(
+                  child: Row(children: [Expanded(child: TerminalWidget())]))
+            ])));
   }
 }
 

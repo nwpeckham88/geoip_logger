@@ -13,13 +13,14 @@ class GeoIPFirebaseFirestore {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  GeoIPFirebaseFirestore(FirebaseOptions options) {
+  GeoIPFirebaseFirestore({required this.options}) : _apis = [] {
     initializeFirebase(options);
   }
 
   Future<void> initializeFirebase(FirebaseOptions options) async {
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(options: options);
+      await loadApis();
       _isInitialized = true;
     } catch (e) {
       if (kDebugMode) {
@@ -44,6 +45,11 @@ class GeoIPFirebaseFirestore {
       return [];
     }
   }
+
+    /// Getter for the loaded APIs.
+    List<Map<String, dynamic>> get apis => _apis; 
+
+
 
   bool isInitialized() {
     return _isInitialized;
