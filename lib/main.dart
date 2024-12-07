@@ -7,7 +7,6 @@ import 'package:geoip_logger/firestore_api_loader.dart';
 import 'package:geoip_logger/terminal_widget.dart';
 
 final GeoIPFirebaseFirestore firestore = GeoIPFirebaseFirestore();
-
 const sidebarColor = Color(0xFFF6A00C);
 
 String logFilePath = "geoIpLogs.json";
@@ -25,12 +24,13 @@ const windowsOptions = FirebaseOptions(
       );
 
 
+//const windowsOptions = DefaultFirebaseOptions.currentPlatform;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  firestore.initializeFirebase();
+  firestore.initializeFirebase(windowsOptions);
   firestore.loadApis();
+  await firestore.loadApis();
   runApp(const MyApp());
-  doWhenWindowReady(() {
     final win = appWindow;
     const initialSize = Size(600, 450);
     win.minSize = initialSize;
@@ -38,7 +38,6 @@ Future<void> main() async {
     win.alignment = Alignment.center;
     win.title = "Custom window with Flutter";
     win.show();
-  });
 }
 
 const borderColor = Color(0xFF805306);
@@ -54,11 +53,9 @@ class MyApp extends StatelessWidget {
         body: WindowBorder(
           color: borderColor,
           width: 1,
-          child: Row(
-            children: const [LeftSide(), RightSide()],
+          child: TerminalWidget(),
           ),
         ),
-      ),
     );
   }
 }

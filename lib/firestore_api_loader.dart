@@ -1,7 +1,3 @@
-//import 'package:geoip_logger/firebase_options.dart';
-
-//FirebaseOptions windowsOptions = DefaultFirebaseOptions.currentPlatform;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -13,9 +9,7 @@ class GeoIPFirebaseFirestore {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  GeoIPFirebaseFirestore({required this.options}) : _apis = [] {
-    initializeFirebase(options);
-  }
+  GeoIPFirebaseFirestore(){}
 
   Future<void> initializeFirebase(FirebaseOptions options) async {
     try {
@@ -46,10 +40,9 @@ class GeoIPFirebaseFirestore {
     }
   }
 
-    /// Getter for the loaded APIs.
-    List<Map<String, dynamic>> get apis => _apis; 
-
-
+  Future<List<Map<String, dynamic>>> serveData() async {
+    return await loadApis();
+  }
 
   bool isInitialized() {
     return _isInitialized;
